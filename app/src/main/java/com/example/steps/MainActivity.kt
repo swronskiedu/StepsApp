@@ -13,28 +13,34 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.example.steps.ui.theme.StepsTheme
 
+var currentSteps by mutableIntStateOf(0)
+var totalSteps by mutableIntStateOf(0)
+
 class MainActivity : ComponentActivity(), SensorEventListener {
 
     private var running = false
     private var sensorManager: SensorManager? = null
-    private var totalSteps by mutableStateOf(0)
-    private var currentSteps by mutableStateOf(0)
+    private var stepsGoal = 10000
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -45,21 +51,18 @@ class MainActivity : ComponentActivity(), SensorEventListener {
 
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
         setContent {
-            StepsTheme {
-                val state = remember { mutableStateOf(0) }
-
+            StepsTheme{
                 Column(
                     modifier = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    StepsView(totalSteps-currentSteps, Modifier.padding(16.dp))
-                    Button(onClick = {
-                        currentSteps = totalSteps
-                        state.value += 1
-                    }) {
-                        Text("Reset")
-                    }
+                    StepsView(
+                        totalSteps,
+                        stepsGoal,
+                        modifier = Modifier.padding(16.dp),
+                        style = MaterialTheme.typography.titleLarge
+                    )
                 }
             }
         }
@@ -123,10 +126,48 @@ class MainActivity : ComponentActivity(), SensorEventListener {
 @Composable
 fun StepsView(
     steps: Int,
-    modifier: Modifier = Modifier
+    stepsGoal: Int,
+    modifier: Modifier = Modifier,
+    style: TextStyle = MaterialTheme.typography.bodyLarge
 ) {
+    val goal = remember { mutableIntStateOf(stepsGoal) }
+    val showDialog = remember { mutableStateOf(false) }
+
+    if (showDialog.value)
+        CustomDialog(value = "", setShowDialog = {
+            showDialog.value = it
+        }) {
+            goal.intValue = it.toInt()
+            println(goal)
+        }
+
     Text(
-        text = "Steps: $steps",
-        modifier = modifier
+        text = "Steps: \n${steps-currentSteps}/${goal.intValue}",
+        modifier = modifier,
+        style = style
     )
+    Row(
+        modifier = Modifier.padding(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center,
+    ) {
+        Button(onClick = {
+            showDialog.value = true
+        }) {
+            Text(
+                "Set Goal",
+                modifier = Modifier.padding(8.dp),
+                style = MaterialTheme.typography.bodyLarge
+            )
+        }
+        Button(onClick = {
+            currentSteps = steps
+        }) {
+            Text(
+                "Reset",
+                modifier = Modifier.padding(8.dp),
+                style = MaterialTheme.typography.bodyLarge
+            )
+        }
+    }
 }
